@@ -1,0 +1,12 @@
+blinker
+certifi
+charset-normalizer
+click
+Flask
+idna
+itsdangerous
+Jinja2
+MarkupSafe
+requests
+Werkzeug
+urllib3==1.26.6
