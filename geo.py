@@ -2,56 +2,46 @@ import requests
 from math import sin, cos, sqrt, atan2, radians
 
 
-def get_coordinates(city_name):
+def get_geo_info(city_name, type_info):
+    """
+    Возвращает информацию о городе (стране или координатах) в зависимости от параметра type_info ('country' or 'coordinates').
+
+    :param city_name: Название города
+    :param type_info: Тип запрашиваемой информации ('country' или 'coordinates')
+    :return: Страну или координаты в виде tuple (long, lat)
+    """
     try:
-        # url, по которому доступно API Яндекс.Карт
+        # Общий запрос к Yandex Maps API
         url = "https://geocode-maps.yandex.ru/1.x/"
-        # параметры запроса
         params = {
             "apikey": "8013b162-6b42-4997-9691-77b7074026e0",
-            # город, координаты которого мы ищем
             'geocode': city_name,
-            # формат ответа от сервера, в данном случае JSON
             'format': 'json'
         }
-        # отправляем запрос
+
         response = requests.get(url, params)
-        # получаем JSON ответа
-        json = response.json()
-        # получаем координаты города
-        # (там написаны долгота(longitude), широта(latitude) через пробел)
-        # посмотреть подробное описание JSON-ответа можно
-        # в документации по адресу https://tech.yandex.ru/maps/geocoder/
-        coordinates_str = json['response']['GeoObjectCollection'][
-            'featureMember'][0]['GeoObject']['Point']['pos']
-        # Превращаем string в список, так как
-        # точка - это пара двух чисел - координат
-        long, lat = map(float, coordinates_str.split())
-        # Вернем ответ
-        return long, lat
-    except Exception as e:
-        return e
+        data = response.json()
 
+        # Если нужен country
+        if type_info == 'country':
+            return data['response']['GeoObjectCollection']['featureMember'][0]['GeoObject']['metaDataProperty'][
+                'GeocoderMetaData']['AddressDetails']['Country']['CountryName']
 
-def get_country(city_name):
-    try:
-        url = "https://geocode-maps.yandex.ru/1.x/"
-        params = {
-            "apikey": "8013b162-6b42-4997-9691-77b7074026e0",
-            'geocode': city_name,
-            'format': 'json'
-        }
-        data = requests.get(url, params).json()
-        # все отличие тут, мы получаем имя страны
-        return data['response']['GeoObjectCollection'][
-            'featureMember'][0]['GeoObject']['metaDataProperty'][
-            'GeocoderMetaData']['AddressDetails']['Country']['CountryName']
+        # Если нужны координаты
+        elif type_info == 'coordinates':
+            coordinates_str = data['response']['GeoObjectCollection']['featureMember'][0]['GeoObject']['Point']['pos']
+            long, lat = map(float, coordinates_str.split())
+            return long, lat
+
+        else:
+            raise ValueError("Некорректный аргумент type_info")
+
     except Exception as e:
-        return e
+        return f"Произошла ошибка: {e}"
 
 
 def get_distance(p1, p2):
-    # p1 и p2 - это кортежи из двух элементов - координаты точек
+    """Вычисляет расстояние между двумя точками на Земле"""
     radius = 6373.0
 
     lon1 = radians(p1[0])
@@ -63,7 +53,7 @@ def get_distance(p1, p2):
     d_lat = lat2 - lat1
 
     a = sin(d_lat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(d_lon / 2) ** 2
-    c = 2 * atan2(a ** 0.5, (1 - a) ** 0.5)
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
 
     distance = radius * c
     return distance
